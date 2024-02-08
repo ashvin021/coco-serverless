@@ -1,11 +1,13 @@
-from json import loads as json_loads
+from json import loads as json_loads, dumps as json_dumps
 from subprocess import run
 from tasks.util.env import CONTAINERD_CONFIG_FILE
 from tasks.util.toml import update_toml
 from time import sleep
+from datetime import datetime
+from typing import Optional
 
 
-def get_journalctl_containerd_logs(timeout_mins=1):
+def get_journalctl_containerd_logs(timeout_mins=1, since: Optional[datetime] = None, until: Optional[datetime] = None):
     """
     Get the journalctl logs for containerd
 
@@ -13,8 +15,19 @@ def get_journalctl_containerd_logs(timeout_mins=1):
     clipped (or at least remove the chance of it being so)
     """
     tmp_file = "/tmp/journalctl.log"
-    journalctl_cmd = "sudo journalctl -xeu containerd --no-tail "
-    journalctl_cmd += '--since "{} min ago" -o json > {}'.format(timeout_mins, tmp_file)
+    journalctl_cmd = "sudo journalctl -xu containerd "
+
+    DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+    if since:
+        journalctl_cmd += f'--since "{since.strftime(DATE_FORMAT)}" '
+    else: 
+        journalctl_cmd += '--since "{} min ago"'.format(timeout_mins)
+
+    if until:
+        journalctl_cmd += f'--until "{until.strftime(DATE_FORMAT)}" '
+
+    journalctl_cmd += "-o json > {}".format(tmp_file)
     run(journalctl_cmd, shell=True, check=True)
 
     with open(tmp_file, "r") as fh:
@@ -24,7 +37,7 @@ def get_journalctl_containerd_logs(timeout_mins=1):
 
 
 def get_event_from_containerd_logs(
-    event_name, event_id, num_events, extra_event_id=None, timeout_mins=1
+    event_name, event_id, num_events, extra_event_id=None, logs=None, timeout_mins=1
 ):
     """
     Get the last `num_events` events in containerd logs that correspond to
@@ -33,15 +46,17 @@ def get_event_from_containerd_logs(
     # Parsing from `journalctl` is slightly hacky, and prone to spurious
     # errors. We put a lot of assertions here to make sure that the timestamps
     # we read are the adequate ones, thus we allow some failures and retry
-    num_repeats = 3
+    num_repeats = 3 if logs is None else 1
     backoff_secs = 3
     for i in range(num_repeats):
         try:
-            out = get_journalctl_containerd_logs(timeout_mins)
+            out = logs if logs is not None else get_journalctl_containerd_logs(timeout_mins)
+
 
             event_json = []
             for o in out:
                 o_json = json_loads(o)
+                # print(json_dumps(o_json, indent=2))
                 if (
                     o_json is None
                     or "MESSAGE" not in o_json
@@ -90,13 +105,14 @@ def get_ts_for_containerd_event(
     event_id,
     lower_bound=None,
     extra_event_id=None,
+    logs=None,
     timeout_mins=1,
 ):
     """
     Get the journalctl timestamp for one event in the containerd logs
     """
     event_json = get_event_from_containerd_logs(
-        event_name, event_id, 1, extra_event_id=None, timeout_mins=timeout_mins
+        event_name, event_id, 1, extra_event_id=None, logs=logs, timeout_mins=timeout_mins
     )[0]
     ts = int(event_json["__REALTIME_TIMESTAMP"]) / 1e6
 

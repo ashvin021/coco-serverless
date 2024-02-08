@@ -8,6 +8,7 @@ from . import ovmf_detail
 from . import prune
 from . import startup
 from . import vm_detail
+from . import vm_cache
 from . import xput
 from . import xput_detail
 
@@ -20,6 +21,7 @@ ns = Collection(
     prune,
     startup,
     vm_detail,
+    vm_cache,
     xput,
     xput_detail,
 )

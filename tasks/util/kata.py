@@ -1,5 +1,6 @@
 from os import makedirs
 from os.path import dirname, exists, join
+from time import sleep
 from subprocess import run
 from tasks.util.docker import is_ctr_running
 from tasks.util.env import (
@@ -8,8 +9,10 @@ from tasks.util.env import (
     KATA_RUNTIMES,
     KATA_WORKON_CTR_NAME,
     KATA_WORKON_IMAGE_TAG,
+    COCO_ROOT
 )
 from tasks.util.toml import read_value_from_toml, remove_entry_from_toml, update_toml
+import subprocess
 
 # This path is hardcoded in the docker image: ./docker/kata.dockerfile
 KATA_SOURCE_DIR = "/go/src/github.com/kata-containers/kata-containers"
@@ -214,3 +217,16 @@ def update_vm_mem_size(toml_path, new_mem_size):
         mem_size=new_mem_size
     )
     update_toml(toml_path, updated_toml_str)
+
+def get_sandbox_ids():
+    kata_monitor = join(COCO_ROOT, "bin", "kata-monitor")
+    monitor_process = subprocess.Popen(f"sudo {kata_monitor}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        sleep(1)
+        output = run("curl localhost:8090/sandboxes", shell=True, capture_output=True).stdout.decode("utf-8").strip()
+        return output
+    finally:
+        monitor_process.kill()
+        # kata monitor makes the subsequent output display weirdly, this fixes it
+        subprocess.run(["stty", "sane"])
+

@@ -11,6 +11,8 @@ k9s
 
 # Python-related stuff
 venv
+**/__pycache__/
+
 
 # Templated files
 templated

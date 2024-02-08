@@ -1,6 +1,7 @@
 from invoke import task
 from os.path import join
 from subprocess import run
+from numpy import who
 from tasks.util.env import (
     KATA_ROOT,
     KATA_CONFIG_DIR,
@@ -15,6 +16,7 @@ from tasks.util.kata import (
     replace_agent as do_replace_agent,
     run_kata_workon_ctr,
     stop_kata_workon_ctr,
+    get_sandbox_ids as do_get_sandbox_ids
 )
 from tasks.util.toml import update_toml
 
@@ -130,3 +132,22 @@ def replace_shim(ctx, revert=False):
         shell=True,
         check=True,
     )
+
+
+@task
+def replace_monitor(ctx):
+    """
+    Replace the kata-monitor with a custom one
+
+    To replace the monitor, we just need to change the soft-link from the right
+    shim to our re-built one
+    """
+    # First, copy the binary from the source tree
+    src_monitor_binary = join(KATA_SHIM_SOURCE_DIR, "kata-monitor")
+    dst_monitor_binary = join(COCO_ROOT, "bin", "kata-monitor")
+    copy_from_kata_workon_ctr(src_monitor_binary, dst_monitor_binary, sudo=True)
+
+
+@task
+def get_sandbox_ids(ctx):
+    return do_get_sandbox_ids()
