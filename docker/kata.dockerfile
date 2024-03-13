@@ -42,7 +42,11 @@ RUN ln -sf ~/dotfiles/bash/.bashrc ~/.bashrc \
 RUN apt install -y \
         gcc \
         gopls \
+        llvm \
+        clang \
         libseccomp-dev \
+        libclang-dev \
+        libdevmapper-dev \
         make \
         musl-tools \
         wget
@@ -68,9 +72,9 @@ ENV PATH=${PATH}:/usr/local/go/bin:/root/.cargo/bin
 ARG CODE_DIR=/go/src/github.com/kata-containers/kata-containers
 RUN mkdir -p ${CODE_DIR} \
     && git clone\
-        # Note that we use our fork from CC-0.7.0 + patches
-        -b csg-main \
-        https://github.com/csegarragonz/kata-containers \
+        # Note that we use our fork from CC-0.8.0 + patches
+        -b aa-main \
+        https://github.com/coco-serverless/kata-containers \
         ${CODE_DIR} \
     && git config --global --add safe.directory ${CODE_DIR} \
     && cd ${CODE_DIR}/src/runtime && make \

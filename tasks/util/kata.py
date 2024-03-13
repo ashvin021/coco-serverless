@@ -9,7 +9,7 @@ from tasks.util.env import (
     KATA_RUNTIMES,
     KATA_WORKON_CTR_NAME,
     KATA_WORKON_IMAGE_TAG,
-    COCO_ROOT
+    KATA_ROOT
 )
 from tasks.util.toml import read_value_from_toml, remove_entry_from_toml, update_toml
 import subprocess
@@ -150,7 +150,7 @@ def replace_agent(
     # the same relative directory structure (cuz bash).
     kata_tmp_scripts = "/tmp/osbuilder"
     run(
-        "rm -f {} && mkdir -p {} {}".format(
+        "rm -rf {} && mkdir -p {} {}".format(
             kata_tmp_scripts,
             join(kata_tmp_scripts, "scripts"),
             join(kata_tmp_scripts, "initrd-builder"),
@@ -219,7 +219,7 @@ def update_vm_mem_size(toml_path, new_mem_size):
     update_toml(toml_path, updated_toml_str)
 
 def get_sandbox_ids():
-    kata_monitor = join(COCO_ROOT, "bin", "kata-monitor")
+    kata_monitor = join(KATA_ROOT, "bin", "kata-monitor")
     monitor_process = subprocess.Popen(f"sudo {kata_monitor}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         sleep(1)

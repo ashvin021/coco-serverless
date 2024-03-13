@@ -135,18 +135,17 @@ def replace_shim(ctx, revert=False):
 
 
 @task
-def replace_monitor(ctx):
+def replace_runtime(ctx):
     """
-    Replace the kata-monitor with a custom one
+    Replace the kata-runtime with a custom one
 
-    To replace the monitor, we just need to change the soft-link from the right
+    To replace the runtime, we just need to change the soft-link from the right
     shim to our re-built one
     """
     # First, copy the binary from the source tree
-    src_monitor_binary = join(KATA_SHIM_SOURCE_DIR, "kata-monitor")
-    dst_monitor_binary = join(COCO_ROOT, "bin", "kata-monitor")
-    copy_from_kata_workon_ctr(src_monitor_binary, dst_monitor_binary, sudo=True)
-
+    src_runtime_binary = join(KATA_SHIM_SOURCE_DIR, "kata-runtime")
+    dst_runtime_binary = join(KATA_ROOT, "bin", "kata-runtime-aa")
+    copy_from_kata_workon_ctr(src_runtime_binary, dst_runtime_binary, sudo=True)
 
 @task
 def get_sandbox_ids(ctx):
