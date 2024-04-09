@@ -150,7 +150,7 @@ def replace_agent(
     # the same relative directory structure (cuz bash).
     kata_tmp_scripts = "/tmp/osbuilder"
     run(
-        "rm -rf {} && mkdir -p {} {}".format(
+        "sudo rm -rf {} && mkdir -p {} {}".format(
             kata_tmp_scripts,
             join(kata_tmp_scripts, "scripts"),
             join(kata_tmp_scripts, "initrd-builder"),
@@ -190,7 +190,8 @@ def replace_agent(
         update_toml(conf_file_path, updated_toml_str)
 
         if runtime == "qemu":
-            remove_entry_from_toml(conf_file_path, "hypervisor.qemu.image")
+            # remove_entry_from_toml(conf_file_path, "hypervisor.qemu.image")
+            pass
 
 
 def get_default_vm_mem_size(
