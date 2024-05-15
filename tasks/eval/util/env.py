@@ -31,6 +31,14 @@ BASELINES = {
         "image_tag": "unencrypted",
         "firmware": "",
     },
+    # This baseline is the same as `kata` above, but uses VM cache
+    "kata-cache": {
+        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu.toml"),
+        "runtime_class": "kata",
+        "cri_handler": "",
+        "image_tag": "unencrypted",
+        "firmware": "",
+    },
     # This baseline uses plain Knative on CoCo, but without SEV-enabled VMs
     "coco-nosev": {
         "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu.toml"),

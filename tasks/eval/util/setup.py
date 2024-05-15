@@ -22,6 +22,7 @@ def get_backup_file_path_from_conf_file(conf_file):
 
 
 def backup_kata_config_file(conf_file):
+    if not conf_file: return
     backup_file = get_backup_file_path_from_conf_file(conf_file)
     run("cp {} {}".format(conf_file, backup_file), shell=True, check=True)
 
