@@ -10,6 +10,8 @@ from tasks.util.coco import (
 )
 from tasks.util.containerd import set_cri_handler
 from tasks.util.kbs import clear_kbs_db, provision_launch_digest
+from tasks.vm_cache import do_background_init, do_destroy_cache, do_enable_vm_cache
+import time
 
 
 def get_backup_file_path_from_conf_file(conf_file):
@@ -40,6 +42,11 @@ def cleanup_baseline(baseline):
     a baseline has executed
     """
     baseline_traits = BASELINES[baseline]
+
+    # Additional cleanup for VM Cache
+    if baseline == "kata-cache":
+        do_destroy_cache(baseline_traits["conf_file"])
+
     restore_kata_config_file(baseline_traits["conf_file"])
 
 
@@ -97,3 +104,9 @@ def setup_baseline(baseline, used_images, image_repo=EXPERIMENT_IMAGE_REPO):
             signature_policy=baseline_traits["signature_policy"],
             clean=False,
         )
+
+    # Additional setup for VM Cache
+    if baseline == "kata-cache":
+        do_enable_vm_cache(baseline_traits["conf_file"], baseline_traits["cache_number"])
+        time.sleep(2)
+        do_background_init(baseline_traits["conf_file"])

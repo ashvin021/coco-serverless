@@ -21,6 +21,8 @@ from tasks.util.kata import (
 from tasks.util.toml import update_toml
 
 KATA_SHIM_SOURCE_DIR = join(KATA_SOURCE_DIR, "src", "runtime")
+KATA_DST_SHIM_BINARY_NAME = "containerd-shim-kata-v2-aa"
+KATA_DST_RUNTIME_BINARY_NAME = "kata-runtime-aa"
 
 
 @task
@@ -117,7 +119,7 @@ def replace_shim(ctx, revert=False):
     """
     # First, copy the binary from the source tree
     src_shim_binary = join(KATA_SHIM_SOURCE_DIR, "containerd-shim-kata-v2")
-    dst_shim_binary = join(KATA_ROOT, "bin", "containerd-shim-kata-v2-csg")
+    dst_shim_binary = join(KATA_ROOT, "bin", KATA_DST_SHIM_BINARY_NAME)
     copy_from_kata_workon_ctr(src_shim_binary, dst_shim_binary, sudo=True)
 
     # Second, soft-link the SEV runtime to the right shim binary
@@ -144,9 +146,25 @@ def replace_runtime(ctx):
     """
     # First, copy the binary from the source tree
     src_runtime_binary = join(KATA_SHIM_SOURCE_DIR, "kata-runtime")
-    dst_runtime_binary = join(KATA_ROOT, "bin", "kata-runtime-aa")
+    dst_runtime_binary = join(KATA_ROOT, "bin", KATA_DST_RUNTIME_BINARY_NAME)
     copy_from_kata_workon_ctr(src_runtime_binary, dst_runtime_binary, sudo=True)
 
 @task
 def get_sandbox_ids(ctx):
     return do_get_sandbox_ids()
+
+@task
+def symlink_replacements(ctx):
+    replacement_runtime_binary = join(KATA_ROOT, "bin", KATA_DST_RUNTIME_BINARY_NAME)
+    replacement_shim_binary = join(KATA_ROOT, "bin", KATA_DST_SHIM_BINARY_NAME)
+    run(
+        "sudo ln -svf {} {}".format(replacement_runtime_binary, "/usr/bin/kata-runtime"),
+        shell=True,
+        check=True,
+    )
+    run(
+        "sudo ln -svf {} {}".format(replacement_shim_binary, "/usr/local/bin/containerd-shim-kata-v2"),
+        shell=True,
+        check=True,
+    )
+

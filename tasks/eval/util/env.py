@@ -38,6 +38,7 @@ BASELINES = {
         "cri_handler": "",
         "image_tag": "unencrypted",
         "firmware": "",
+        "cache_number": 3,
     },
     # This baseline uses plain Knative on CoCo, but without SEV-enabled VMs
     "coco-nosev": {

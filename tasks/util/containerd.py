@@ -22,7 +22,7 @@ def get_journalctl_containerd_logs(timeout_mins=1, since: Optional[datetime] = N
     if since:
         journalctl_cmd += f'--since "{since.strftime(DATE_FORMAT)}" '
     else: 
-        journalctl_cmd += '--since "{} min ago"'.format(timeout_mins)
+        journalctl_cmd += '--since "{} min ago" '.format(timeout_mins)
 
     if until:
         journalctl_cmd += f'--until "{until.strftime(DATE_FORMAT)}" '

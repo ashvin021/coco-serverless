@@ -223,7 +223,7 @@ def run(ctx, baseline=None):
 
 
 @task
-def plot(ctx):
+def plot(ctx, baselines):
     results_dir = join(RESULTS_DIR, "startup")
     plots_dir = join(PLOTS_DIR, "startup")
 
@@ -271,7 +271,14 @@ def plot(ctx):
     # --------------------------
 
     fig, ax = subplots()
+
     xlabels = list(BASELINES.keys())
+    filtered_xlabels = [l for l in xlabels if l in baselines]
+    if baselines and not filtered_xlabels:
+        print("The baselines you have provided are invalid, continuing with all baselines")
+    else:
+        xlabels = filtered_xlabels
+
     xs = range(len(xlabels))
     num_flavours = len(BASELINE_FLAVOURS)
     space_between_baselines = 0.2

@@ -40,7 +40,7 @@ def replace_sidecar(reset_default=False, image_repo="ghcr.io", quiet=False):
     do_run(docker_cmd, quiet)
 
     # Re-tag it, and push it to our controlled registry
-    image_name = "csegarragonz/coco-knative-sidecar"
+    image_name = "ashvin021/coco-knative-sidecar"
     image_tag = "unencrypted"
     new_image_url = "{}/{}:{}".format(image_repo, image_name, image_tag)
     docker_cmd = "docker tag {} {}".format(KNATIVE_SIDECAR_IMAGE_TAG, new_image_url)

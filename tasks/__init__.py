@@ -18,6 +18,7 @@ from . import qemu
 from . import registry
 from . import sev
 from . import skopeo
+from . import vm_cache
 
 from tasks.eval import ns as eval_ns
 
@@ -40,6 +41,7 @@ ns = Collection(
     registry,
     sev,
     skopeo,
+    vm_cache,
 )
 
 ns.add_collection(eval_ns, name="eval")
