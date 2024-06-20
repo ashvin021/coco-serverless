@@ -37,7 +37,8 @@ def get_journalctl_containerd_logs(timeout_mins=1, since: Optional[datetime] = N
 
 
 def get_event_from_containerd_logs(
-    event_name, event_id, num_events, extra_event_id=None, logs=None, timeout_mins=1
+    event_name, event_id, num_events, extra_event_id=None, logs=None, timeout_mins=1,
+    num_repeats=3
 ):
     """
     Get the last `num_events` events in containerd logs that correspond to
@@ -46,8 +47,7 @@ def get_event_from_containerd_logs(
     # Parsing from `journalctl` is slightly hacky, and prone to spurious
     # errors. We put a lot of assertions here to make sure that the timestamps
     # we read are the adequate ones, thus we allow some failures and retry
-    num_repeats = 3 if logs is None else 1
-    backoff_secs = 3
+    num_repeats = num_repeats if logs is None else 1
     for i in range(num_repeats):
         try:
             out = logs if logs is not None else get_journalctl_containerd_logs(timeout_mins)
@@ -107,12 +107,13 @@ def get_ts_for_containerd_event(
     extra_event_id=None,
     logs=None,
     timeout_mins=1,
+    num_repeats=3
 ):
     """
     Get the journalctl timestamp for one event in the containerd logs
     """
     event_json = get_event_from_containerd_logs(
-        event_name, event_id, 1, extra_event_id=None, logs=logs, timeout_mins=timeout_mins
+        event_name, event_id, 1, extra_event_id=None, logs=logs, timeout_mins=timeout_mins, num_repeats=num_repeats
     )[0]
     ts = int(event_json["__REALTIME_TIMESTAMP"]) / 1e6
 
@@ -132,6 +133,7 @@ def get_start_end_ts_for_containerd_event(
     lower_bound=None,
     extra_event_id=None,
     timeout_mins=1,
+    num_repeats=3
 ):
     """
     Get the start and end timestamps (in epoch floating seconds) for a given
@@ -143,6 +145,7 @@ def get_start_end_ts_for_containerd_event(
         2,
         extra_event_id=extra_event_id,
         timeout_mins=timeout_mins,
+        num_repeats=num_repeats
     )
 
     start_ts = int(event_json[-2]["__REALTIME_TIMESTAMP"]) / 1e6

@@ -167,4 +167,14 @@ def symlink_replacements(ctx):
         shell=True,
         check=True,
     )
+    run(
+        "sudo ln -svf {} {}".format(replacement_shim_binary, "/usr/local/bin/containerd-shim-kata-qemu-v2"),
+        shell=True,
+        check=True,
+    )
+    run(
+        "sudo ln -svf {} {}".format(replacement_shim_binary, "/usr/local/bin/containerd-shim-kata-qemu-sev-v2"),
+        shell=True,
+        check=True,
+    )
 

@@ -44,7 +44,7 @@ BASELINES = {
     "coco-nosev": {
         "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu.toml"),
         "runtime_class": "kata-qemu",
-        "cri_handler": "cc",
+        "cri_handler": "", # "cc" -- This is deprecated in v0.8.0
         "image_tag": "unencrypted",
         "firmware": "",
     },
@@ -53,7 +53,7 @@ BASELINES = {
     "coco-nosev-ovmf": {
         "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
         "runtime_class": "kata-qemu-sev",
-        "cri_handler": "cc",
+        # "cri_handler": "cc" -- This is deprecated in v0.8.0
         "image_tag": "unencrypted",
         "firmware": join(KATA_ROOT, "share", "ovmf", "OVMF_CSG.fd"),
         "hypervisor": join(BIN_DIR, "qemu_wrapper_remove_sev_blob.py"),
@@ -66,18 +66,51 @@ BASELINES = {
     "coco": {
         "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
         "runtime_class": "kata-qemu-sev",
-        "cri_handler": "cc",
+        "cri_handler": "", ## "cc" -- This is deprecated in v0.8.0
         "image_tag": "unencrypted",
         "guest_attestation": "off",
         "signature_verification": "off",
         "signature_policy": "none",
+    },
+    # This baseline is the same as above, but uses VM Cache with a size of 3
+    "coco-cache": {
+        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
+        "runtime_class": "kata-qemu-sev",
+        "cri_handler": "", ## "cc" -- This is deprecated in v0.8.0
+        "image_tag": "unencrypted",
+        "guest_attestation": "off",
+        "signature_verification": "off",
+        "signature_policy": "none",
+        "cache_number": 3
+    },
+    # Same as above, but uses a VM Cache size of 8
+    "coco-cache-8": {
+        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
+        "runtime_class": "kata-qemu-sev",
+        "cri_handler": "", ## "cc" -- This is deprecated in v0.8.0
+        "image_tag": "unencrypted",
+        "guest_attestation": "off",
+        "signature_verification": "off",
+        "signature_policy": "none",
+        "cache_number": 8
+    },
+    # Same as above, but uses a VM Cache size of 16
+    "coco-cache-16": {
+        "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
+        "runtime_class": "kata-qemu-sev",
+        "cri_handler": "", ## "cc" -- This is deprecated in v0.8.0
+        "image_tag": "unencrypted",
+        "guest_attestation": "off",
+        "signature_verification": "off",
+        "signature_policy": "none",
+        "cache_number": 16
     },
     # This baseline is the same as the previous one, but the hardware is
     # attested
     "coco-fw": {
         "conf_file": join(KATA_CONFIG_DIR, "configuration-qemu-sev.toml"),
         "runtime_class": "kata-qemu-sev",
-        "cri_handler": "cc",
+        "cri_handler": "", # "cc" -- This is deprecated in v0.8.0
         "image_tag": "unencrypted",
         "guest_attestation": "on",
         "signature_verification": "on",

@@ -115,6 +115,19 @@ def replace_agent(
     run("sudo rm {}".format(alt_agent_initrd_path), shell=True, check=True)
     copy_from_kata_workon_ctr(agent_host_path, alt_agent_initrd_path, sudo=True)
 
+    # Install bash and coreutils into the initrd
+    # run("sudo cp /bin/bash {}/bin/bash".format(workdir), shell=True, check=True)
+    # coreutils_binaries = ["ls", "cat", "cp", "mv", "rm", "mkdir", "echo"]
+    # for binary in coreutils_binaries:
+    #     run("sudo cp /bin/{} {}/bin/{}".format(binary, workdir, binary), shell=True, check=True)
+
+    # Ensure dependencies for bash and coreutils are included (if needed)
+    # Example for copying dependencies - you might need to adapt this
+    # dependencies = ["/lib/x86_64-linux-gnu/libtinfo.so.6", "/lib/x86_64-linux-gnu/libc.so.6"]
+    # for dep in dependencies:
+    #     run("sudo cp {} {}/lib/".format(dep, workdir), shell=True, check=True)
+
+
     # Include any extra files that the caller may have provided
     if extra_files is not None:
         for host_path in extra_files:

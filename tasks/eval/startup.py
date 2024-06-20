@@ -27,7 +27,7 @@ from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
 from time import sleep, time
 
 
-def do_run(result_file, num_run, service_file, flavour, warmup=False):
+def do_run(result_file, num_run, service_file, flavour, warmup=False, only_create_sandbox=False, timeout=None):
     start_ts = time()
 
     # Silently start
@@ -41,8 +41,15 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
     assert len(pods) == 1
     pod_name = pods[0]
 
+    
+
     # Get events
-    while True:
+
+    # this is not an accurate measure, but rather just guarantees termination
+    elapsed_time = 0
+    pause_time = 2
+
+    while timeout is None or elapsed_time < timeout:
         kube_cmd = "get pod {} -o jsonpath='{{..status.conditions}}'".format(pod_name)
         events_ts = [("Start", start_ts)]
         conditions = run_kubectl_command(kube_cmd, capture_output=True)
@@ -61,7 +68,21 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
                 )
             break
 
-        sleep(2)
+        sleep(pause_time)
+        elapsed_time += pause_time
+
+    def save_results(events_ts):
+        if events_ts:
+            # Sort the events by timestamp and write them to a file
+            events_ts = sorted(events_ts, key=lambda x: x[1])
+            for event in events_ts:
+                write_csv_line(result_file, num_run, event[0], event[1])
+
+    def cleanup_pod():
+        # Wait for pod to finish
+        run_kubectl_command("delete -f {}".format(service_file), capture_output=True)
+        run_kubectl_command("delete pod {}".format(pod_name), capture_output=True)
+
 
     if not warmup:
         # Work-out the time spent creating the pod sandbox
@@ -72,6 +93,11 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
         )
         events_ts.append(("StartRunPodSandbox", start_ts_ps))
         events_ts.append(("EndRunPodSandbox", end_ts_ps))
+
+        if only_create_sandbox:
+            save_results(events_ts)
+            cleanup_pod()
+            return
 
         # Work-out the time spent pulling container images
         skip_image_pull = (
@@ -134,18 +160,14 @@ def do_run(result_file, num_run, service_file, flavour, warmup=False):
         events_ts.append(("StartStartContainer_Sidecar", start_ts_sc_sc))
         events_ts.append(("EndStartContainer_Sidecar", end_ts_sc_sc))
 
-        # Sort the events by timestamp and write them to a file
-        events_ts = sorted(events_ts, key=lambda x: x[1])
-        for event in events_ts:
-            write_csv_line(result_file, num_run, event[0], event[1])
+        save_results(events_ts)
 
-    # Wait for pod to finish
-    run_kubectl_command("delete -f {}".format(service_file), capture_output=True)
-    run_kubectl_command("delete pod {}".format(pod_name), capture_output=True)
+    cleanup_pod()
+
 
 
 @task
-def run(ctx, baseline=None):
+def run(ctx, baseline=None, only_create_sandbox=False):
     """
     Calculate the end-to-end time to spin-up a pod
 
@@ -167,6 +189,7 @@ def run(ctx, baseline=None):
     image_name = "csegarragonz/coco-helloworld-py"
     used_images = ["csegarragonz/coco-knative-sidecar", image_name]
     num_runs = 3
+    timeout = 10 if only_create_sandbox else None
 
     results_dir = join(RESULTS_DIR, "startup")
     if not exists(results_dir):
@@ -201,7 +224,9 @@ def run(ctx, baseline=None):
 
             if flavour == "warm":
                 print("Executing baseline {} warmup run...".format(bline))
-                do_run(result_file, -1, service_file, flavour, warmup=True)
+                do_run(result_file, -1, service_file, flavour, warmup=True, 
+                       only_create_sandbox=only_create_sandbox, 
+                       timeout=timeout)
                 sleep(INTER_RUN_SLEEP_SECS)
 
             if flavour == "cold":
@@ -215,7 +240,9 @@ def run(ctx, baseline=None):
                         bline, flavour, nr + 1, num_runs
                     )
                 )
-                do_run(result_file, nr, service_file, flavour)
+                do_run(result_file, nr, service_file, flavour, 
+                       only_create_sandbox=only_create_sandbox,
+                       timeout=timeout)
                 sleep(INTER_RUN_SLEEP_SECS)
 
                 if flavour == "cold":
@@ -223,7 +250,7 @@ def run(ctx, baseline=None):
 
 
 @task
-def plot(ctx, baselines):
+def plot(ctx, baselines, only_create_sandbox=False):
     results_dir = join(RESULTS_DIR, "startup")
     plots_dir = join(PLOTS_DIR, "startup")
 
@@ -253,17 +280,23 @@ def plot(ctx, baselines):
     ordered_events = {
         "pod-scheduling": ("Start", "StartRunPodSandbox"),
         "make-pod-sandbox": ("StartRunPodSandbox", "EndRunPodSandbox"),
-        "image-pull": ("StartImagePull", "EndImagePull"),
-        "create-container": ("StartCreateContainer", "EndCreateContainer"),
-        "start-container": ("StartCreateContainer", "EndCreateContainer"),
     }
     color_for_event = {
         "pod-scheduling": "green",
         "make-pod-sandbox": "blue",
-        "image-pull": "orange",
-        "create-container": "yellow",
-        "start-container": "red",
     }
+    if not only_create_sandbox:
+        ordered_events.update({
+            "image-pull": ("StartImagePull", "EndImagePull"),
+            "create-container": ("StartCreateContainer", "EndCreateContainer"),
+            "start-container": ("StartCreateContainer", "EndCreateContainer"),
+        })
+        color_for_event.update({
+            "image-pull": "orange",
+            "create-container": "yellow",
+            "start-container": "red",
+        })
+
     assert list(color_for_event.keys()) == list(ordered_events.keys())
 
     # --------------------------
@@ -310,6 +343,7 @@ def plot(ctx, baselines):
                         np_array(results_dict[b][flavour][end_ev]["list"])
                         - np_array(results_dict[b][flavour][start_ev]["list"])
                     )
+                    print(f"{ev} duration: {event_duration}")
                 else:
                     # For all other events, (i.e. all events related to
                     # containers) we have two timestamp pairs: one for the

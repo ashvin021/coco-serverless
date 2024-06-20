@@ -11,6 +11,7 @@ from . import vm_detail
 from . import vm_cache
 from . import xput
 from . import xput_detail
+from . import xput_create_sandbox
 
 ns = Collection(
     image_pull,
@@ -24,4 +25,5 @@ ns = Collection(
     vm_cache,
     xput,
     xput_detail,
+    xput_create_sandbox,
 )

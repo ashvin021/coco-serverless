@@ -21,8 +21,15 @@ from tasks.eval.util.env import (
 from tasks.eval.util.setup import setup_baseline
 from tasks.util.k8s import template_k8s_file
 from tasks.util.kubeadm import get_pod_names_in_ns, run_kubectl_command
+from tasks.util.containerd import get_start_end_ts_for_containerd_event
 from time import sleep, time
+import sys
+import os
 
+def disable_print():
+    stdout = sys.stdout
+    sys.stdout = open(os.devnull, "w")
+    return stdout
 
 def do_run(result_file, baseline, num_run, num_par_inst):
     start_ts = time()
@@ -52,44 +59,37 @@ def do_run(result_file, baseline, num_run, num_par_inst):
     is_done = all(list(ready_pods.values()))
     while not is_done:
 
-        def is_pod_done(pod_name):
-            kube_cmd = "get pod {} -o jsonpath='{{..status.conditions}}'".format(
-                pod_name
-            )
-            conditions = run_kubectl_command(kube_cmd, capture_output=True)
-            cond_json = json_loads(conditions)
-            print([cond["status"] for cond in cond_json])
-            return all([cond["status"] == "True" for cond in cond_json])
-
-        def get_pod_ready_ts(pod_name):
-            kube_cmd = "get pod {} -o jsonpath='{{..status.conditions}}'".format(
-                pod_name
-            )
-            conditions = run_kubectl_command(kube_cmd, capture_output=True)
-            cond_json = json_loads(conditions)
-            for cond in cond_json:
-                if cond["type"] == "Ready":
-                    return (
-                        datetime.fromisoformat(
-                            cond["lastTransitionTime"][:-1]
-                        ).timestamp(),
-                    )
-
         for pod in ready_pods:
             # Skip finished pods
             if ready_pods[pod]:
                 continue
 
-            if is_pod_done(pod):
+            stdout = disable_print()
+            ready_ts = None
+
+            try:
+                _, ready_ts = get_start_end_ts_for_containerd_event(
+                    "RunPodSandbox",
+                    pod,
+                    timeout_mins=3,
+                    num_repeats=1
+                )
+            except Exception:
+                pass
+
+            sys.stdout = stdout
+
+            if ready_ts is not None:
                 ready_pods[pod] = True
-                pods_ready_ts[pod] = get_pod_ready_ts(pod)
+                pods_ready_ts[pod] = ready_ts
+                print(f"ready ts: {ready_ts}")
 
         is_done = all(list(ready_pods.values()))
         print(ready_pods)
-        sleep(1)
+        sleep(3)
 
     # Calculate the end timestamp as the maximum (latest) timestamp measured
-    end_ts = max(list(pods_ready_ts.values()))[0]
+    end_ts = max(list(pods_ready_ts.values()))
     write_csv_line(result_file, num_run, start_ts, end_ts)
 
     # Remove the pods when we are done
@@ -120,7 +120,7 @@ def run(ctx, baseline=None, num_par=None):
 
     num_parallel_instances = [1, 2, 4, 8, 16]
     if num_par is not None:
-        num_parallel_instances = [num_par]
+        num_parallel_instances = [int(num_par)]
 
     results_dir = join(RESULTS_DIR, "xput")
     if not exists(results_dir):
@@ -172,7 +172,7 @@ def run(ctx, baseline=None, num_par=None):
 
 
 @task
-def plot(ctx):
+def plot(ctx, baselines):
     """
     Measure the latency-throughput of spawning new Knative service instances
     """
@@ -201,10 +201,17 @@ def plot(ctx):
             ),
         }
 
+
+    blines = list(BASELINES.keys())
+    filtered_blines = [l for l in blines if l in baselines]
+    if baselines and not filtered_blines:
+        print("The baselines you have provided are invalid, continuing with all baselines")
+    else:
+        blines = filtered_blines
+
     # Plot throughput-latency
     fig, ax = subplots()
-    baselines = list(BASELINES.keys())
-    for bline in baselines:
+    for bline in blines:
         xs = sorted([int(k) for k in results_dict[bline].keys()])
         ys = [results_dict[bline][str(x)]["mean"] for x in xs]
         ys_err = [results_dict[bline][str(x)]["sem"] for x in xs]
@@ -220,9 +227,9 @@ def plot(ctx):
     ax.set_xlabel("# concurrent Knative services")
     ax.set_ylabel("Time [s]")
     ax.set_ylim(bottom=0)
-    ax.set_title("Throughput-Latency of Knative Servce Instantiation")
+    ax.set_title("Throughput-Latency of Pod Sandbox Creation for Knative Services")
     ax.legend()
 
     for plot_format in ["pdf", "png"]:
-        plot_file = join(plots_dir, "xput.{}".format(plot_format))
+        plot_file = join(plots_dir, "xput_create_sandbox.{}".format(plot_format))
         fig.savefig(plot_file, format=plot_format, bbox_inches="tight")

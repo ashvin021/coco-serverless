@@ -44,7 +44,7 @@ def cleanup_baseline(baseline):
     baseline_traits = BASELINES[baseline]
 
     # Additional cleanup for VM Cache
-    if baseline == "kata-cache":
+    if baseline == "kata-cache" or baseline == "coco-cache":
         do_destroy_cache(baseline_traits["conf_file"])
 
     restore_kata_config_file(baseline_traits["conf_file"])
@@ -106,7 +106,8 @@ def setup_baseline(baseline, used_images, image_repo=EXPERIMENT_IMAGE_REPO):
         )
 
     # Additional setup for VM Cache
-    if baseline == "kata-cache":
+    if baseline == "kata-cache" or baseline == "coco-cache":
         do_enable_vm_cache(baseline_traits["conf_file"], baseline_traits["cache_number"])
-        time.sleep(2)
+        time.sleep(3)
         do_background_init(baseline_traits["conf_file"])
+        time.sleep(3)
